@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- Replaced the template example with a production-oriented Endstone CPS detector.
+- Added attack normalization from explicit `LEFT_CLICK_AIR` and direct player melee `ActorDamageEvent` sources.
+- Added bounded timestamp-based CPS measurement, continuous violation timing, lag recovery, staff warnings, kick-only enforcement, and safe name-tag suffix handling.
+- Added validated TOML configuration, administrative commands/permissions, unit tests, and a VS Code task-driven build/export workflow.
+
+### Changed
+- Targeted Endstone API 0.11.9+ to use the explicit Bedrock left-click-air event; current development dependency resolves the latest compatible 0.11.x API.
+- Replaced starter-template documentation and command/config examples with CPS Detector deployment documentation.
+
 ## [0.5.0] - 2026-03-23
 
 ### Changed

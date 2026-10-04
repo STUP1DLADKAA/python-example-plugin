@@ -1,19 +1,18 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling>=1.26", "hatch-vcs>=0.4"]
 build-backend = "hatchling.build"
 
 [project]
-name = "endstone-example"
+name = "endstone-cps-detector"
 dynamic = ["version"]
-dependencies = ["typing_extensions>=4.0"]
-authors = [
-    { name = "Endstone Developers", email = "hello@endstone.dev" },
-]
-description = "Python example plugin for Endstone servers"
+description = "Conservative real-time melee CPS detection for Endstone Bedrock servers"
 readme = "README.md"
 license = { file = "LICENSE" }
-keywords = ["endstone", "plugin"]
 requires-python = ">=3.10"
+keywords = ["endstone", "minecraft", "bedrock", "cps", "anti-cheat"]
+authors = [
+    { name = "Endstone CPS Detector contributors" },
+]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -22,28 +21,43 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Topic :: Games/Entertainment",
 ]
+dependencies = []
 
 [project.optional-dependencies]
-dev = ["endstone", "ruff"]
+dev = [
+    "build>=1.2",
+    "endstone>=0.11.9,<0.12",
+    "pytest>=8.0",
+    "ruff>=0.9",
+    "tomli>=2.0; python_version < '3.11'",
+]
 
 [project.urls]
-Homepage = "https://github.com/EndstoneMC/python-example-plugin"
+Homepage = "https://github.com/STUP1DLADKAA/python-example-plugin"
 Documentation = "https://endstone.dev/latest/"
-Changelog = "https://github.com/EndstoneMC/python-example-plugin/blob/main/CHANGELOG.md"
-Issues = "https://github.com/EndstoneMC/python-example-plugin/issues"
+Issues = "https://github.com/STUP1DLADKAA/python-example-plugin/issues"
 
 [project.entry-points."endstone"]
-example = "endstone_example:ExamplePlugin"
-
-[tool.ruff]
-line-length = 120
-
-[tool.ruff.lint]
-select = ["I", "E", "F"]
+cps-detector = "endstone_cps_detector:CPSTrackerPlugin"
 
 [tool.hatch.version]
 source = "vcs"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/endstone_cps_detector"]
+
 [tool.hatch.build.hooks.vcs]
-version-file = "src/endstone_example/_version.py"
+version-file = "src/endstone_cps_detector/_version.py"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["I", "E", "F"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

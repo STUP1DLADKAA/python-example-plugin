@@ -4,150 +4,83 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release (e.g. 0.5.0)"
+        description: "Version to release (e.g. 1.0.0)"
         required: true
         type: string
       dry_run:
-        description: "Preview without making changes"
+        description: "Build and preview without creating a GitHub release"
         required: false
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 jobs:
   release:
-    if: github.repository == 'EndstoneMC/python-example-plugin'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout Code
+      - name: Checkout source
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Validate version
-        run: |
-          VERSION="${{ inputs.version }}"
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Invalid version format: $VERSION (expected X.Y.Z)"
-            exit 1
-          fi
-          if git tag -l "v$VERSION" | grep -q .; then
-            echo "::error::Tag v$VERSION already exists"
-            exit 1
-          fi
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-
-      - name: Extract unreleased changelog
-        run: |
-          BODY=$(sed -n '/^## \[Unreleased\]/,/^## \[/{/^## \[/d; p}' CHANGELOG.md)
-          BODY=$(echo "$BODY" | sed '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba}')
-          if [ -z "$BODY" ]; then
-            echo "::error::Unreleased section in CHANGELOG.md is empty"
-            exit 1
-          fi
-          echo "$BODY" > /tmp/release_body.md
-          echo "Extracted changelog:"
-          echo "$BODY"
-
-      - name: Preview
-        if: inputs.dry_run
-        run: |
-          DATE=$(date -u +%Y-%m-%d)
-          echo "=== Dry Run ==="
-          echo "Version: $VERSION"
-          echo "Tag: v$VERSION"
-          echo "Date: $DATE"
-          echo ""
-          echo "=== Release Body ==="
-          cat /tmp/release_body.md
-          echo ""
-          echo "=== CHANGELOG.md will become ==="
-          echo "## [Unreleased]"
-          echo ""
-          echo "## [$VERSION] - $DATE"
-
-      - name: Update CHANGELOG.md
-        if: ${{ !inputs.dry_run }}
-        run: |
-          DATE=$(date -u +%Y-%m-%d)
-          sed -i "s/^## \[Unreleased\]/## [Unreleased]\n\n## [$VERSION] - $DATE/" CHANGELOG.md
-
-      - name: Commit and tag
-        if: ${{ !inputs.dry_run }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "Release $VERSION"
-          git tag "v$VERSION"
-
-      - name: Push
-        if: ${{ !inputs.dry_run }}
-        run: |
-          git push origin main
-          git push origin "v$VERSION"
-
-      - name: Create GitHub release
-        if: ${{ !inputs.dry_run }}
+      - name: Validate release version and extract notes
         env:
-          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          PREV_TAG=$(git tag --sort=-v:refname | sed -n '2p')
-          if [ -n "$PREV_TAG" ]; then
-            printf '\n**Full Changelog**: https://github.com/%s/compare/%s...v%s\n' \
-              "${{ github.repository }}" "$PREV_TAG" "$VERSION" >> /tmp/release_body.md
+          if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: $RELEASE_VERSION (expected X.Y.Z)"
+            exit 1
           fi
-          gh release create "v$VERSION" \
-            --title "v$VERSION" \
-            --notes-file /tmp/release_body.md
+          if git rev-parse -q --verify "refs/tags/v$RELEASE_VERSION" >/dev/null; then
+            echo "::error::Tag v$RELEASE_VERSION already exists"
+            exit 1
+          fi
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
 
-  build:
-    if: ${{ !inputs.dry_run }}
-    needs: [ release ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v6
-        with:
-          ref: v${{ inputs.version }}
-          fetch-depth: 0
+          awk '
+            /^## \[Unreleased\]/ { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::The Unreleased section in CHANGELOG.md is empty"
+            exit 1
+          fi
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
-      - name: Install
-        run: uv sync --extra dev
+      - name: Install development dependencies
+        run: uv sync --extra dev --locked
 
-      - name: Lint
-        run: uv run ruff check src/
+      - name: Validate API, syntax, lint, and tests
+        run: uv run python tools/build.py validate
 
-  publish:
-    needs: [ build ]
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
-      contents: write
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v6
-        with:
-          ref: v${{ inputs.version }}
-          fetch-depth: 0
+      - name: Build and inspect release wheel
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ inputs.version }}
+        run: uv run python tools/build.py package
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
-
-      - name: Build
-        run: uv build
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-
-      - name: Attach wheel to GitHub Release
+      - name: Create GitHub release and attach wheel
+        if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "v${{ inputs.version }}" dist/*.whl
+        run: |
+          gh release create "v$RELEASE_VERSION" dist/*.whl \
+            --title "v$RELEASE_VERSION" \
+            --notes-file release-notes.md \
+            --target "$GITHUB_SHA"
+
+      - name: Dry-run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "Would create GitHub release v$RELEASE_VERSION at $GITHUB_SHA"
+          echo "Wheel: $(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+          echo "Release notes:"
+          cat release-notes.md

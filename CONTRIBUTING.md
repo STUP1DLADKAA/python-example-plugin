@@ -1,29 +1,32 @@
 # Contributing
 
-Thanks for your interest in improving this template!
+Thanks for helping improve Endstone CPS Detector.
 
-## Development Setup
+## Development setup
+
+Requirements: Python 3.10+, [uv](https://docs.astral.sh/uv/), and an internet connection for development dependencies.
 
 ```bash
-git clone https://github.com/EndstoneMC/python-example-plugin.git
-cd python-example-plugin
 uv sync --extra dev
 ```
 
-## Making Changes
+The development extra installs the current Endstone `0.11.x` Python API, pytest, Ruff, and the wheel build frontend. The server runtime itself supplies Endstone when the wheel is installed.
 
-1. Create a branch for your changes
-2. Run `uv run ruff check src/` before committing
-3. Update `CHANGELOG.md` under `## [Unreleased]` if your change is user-facing
-4. Open a pull request with a clear description of what changed and why
+## Validation
 
-## Code Style
+Run the same validation and packaging steps as the VS Code build tasks before opening a pull request:
 
-- Follow existing patterns in the codebase
-- Keep examples simple and well-commented (this is a teaching template)
-- Run `uv run ruff check src/` to lint
+```bash
+uv run python tools/build.py validate
+uv run python tools/build.py build
+```
 
-## Reporting Issues
+`validate` checks the plugin metadata and packaged TOML config, imports the real Endstone event/API used by detection, compiles the Python source, runs Ruff, and executes unit tests. `build` then creates and inspects the installable wheel in `dist/`.
 
-Use [GitHub Issues](https://github.com/EndstoneMC/python-example-plugin/issues) for bugs
-and feature requests.
+## Design constraints
+
+- Use supported Endstone APIs; do not add generic arm animations, Java APIs, or undocumented packet assumptions as attack evidence.
+- Keep attack classification conservative and document any API limitation that could under-count attacks.
+- Never auto-ban. A kick must require the configured continuous violation duration and an online-player check on the server thread.
+- Keep click histories bounded and clear per-player services on disconnect.
+- Update tests and `README.md` when detection behavior, configuration, commands, or permissions change.
