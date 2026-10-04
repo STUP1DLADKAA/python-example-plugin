@@ -1,0 +1,65 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "endstonePluginDirectory",
+      "type": "promptString",
+      "description": "Endstone server plugins directory (wheel will be copied here)",
+      "default": "${workspaceFolder}/output/plugins"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "BUILD PLUGIN",
+      "type": "process",
+      "command": "uv",
+      "args": ["run", "--extra", "dev", "python", "tools/build.py", "build"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "REBUILD",
+      "type": "process",
+      "command": "uv",
+      "args": ["run", "--extra", "dev", "python", "tools/build.py", "rebuild"],
+      "problemMatcher": []
+    },
+    {
+      "label": "VALIDATE",
+      "type": "process",
+      "command": "uv",
+      "args": ["run", "--extra", "dev", "python", "tools/build.py", "validate"],
+      "problemMatcher": []
+    },
+    {
+      "label": "PACKAGE",
+      "type": "process",
+      "command": "uv",
+      "args": ["run", "--extra", "dev", "python", "tools/build.py", "package"],
+      "problemMatcher": []
+    },
+    {
+      "label": "CLEAN",
+      "type": "process",
+      "command": "uv",
+      "args": ["run", "--extra", "dev", "python", "tools/build.py", "clean"],
+      "problemMatcher": []
+    },
+    {
+      "label": "INSTALL/EXPORT",
+      "type": "process",
+      "command": "uv",
+      "args": [
+        "run",
+        "--extra",
+        "dev",
+        "python",
+        "tools/build.py",
+        "export",
+        "--to",
+        "${input:endstonePluginDirectory}"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

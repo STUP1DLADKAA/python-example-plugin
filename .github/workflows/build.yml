@@ -25,8 +25,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install
-        run: uv sync --extra dev
+      - name: Install development dependencies
+        run: uv sync --extra dev --locked
 
-      - name: Lint
-        run: uv run ruff check src/
+      - name: Validate API, syntax, lint, and tests
+        run: uv run python tools/build.py validate
+
+      - name: Build and inspect Endstone wheel
+        run: uv run python tools/build.py package

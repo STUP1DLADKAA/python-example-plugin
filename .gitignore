@@ -66,4 +66,7 @@ dmypy.json
 wheelhouse/
 
 # Generated version file (hatch-vcs)
-src/endstone_example/_version.py
+src/endstone_cps_detector/_version.py
+
+# Local wheel export target
+output/

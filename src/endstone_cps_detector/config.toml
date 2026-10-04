@@ -1,0 +1,49 @@
+# Set this to false to disable attack tracking, warnings, kicks, and CPS name tags.
+enabled = true
+
+[cps]
+# Rolling time window used to estimate the recent attack rate. 0.5 gives a
+# more responsive but noisier half-second rate; the default is one second.
+limit = 16.0
+warning_threshold = 16.0
+window_seconds = 1.0
+# How often active samples are evaluated (actual cadence is limited by server ticks).
+processing_interval_seconds = 0.10
+violation_seconds = 1.25
+warning_interval_seconds = 2.0
+
+# An idle pause clears the current burst and its violation timer. This prevents
+# a previous burst from being treated as continuous activity after a stop.
+idle_timeout_seconds = 0.30
+
+# If the server stops processing samples for longer than this, the continuous
+# violation timer is restarted rather than crediting unobserved time.
+lag_reset_gap_seconds = 1.0
+
+# Sanity ceiling for the displayed/calculated rate. The timestamp buffer is
+# bounded from this value and window_seconds; values above it remain violations.
+max_measurement_cps = 80.0
+
+[display]
+enabled = true
+update_interval_seconds = 0.15
+format = " §7[§f{cps} CPS§7]"
+precision = 0
+show_zero = false
+
+[warnings]
+enabled = true
+operators_only = true
+console_logging = false
+
+[punishment]
+enabled = true
+kick = true
+kick_reason = "Unusually high CPS detected. Please avoid excessive clicking and reconnect if this was a mistake."
+console_logging = true
+
+[permissions]
+# Bypassed players are still tracked. When false, their CPS is hidden from
+# staff warnings and administrative detail commands (the public name tag is
+# controlled separately by [display]).
+bypass_visible_to_staff = true
