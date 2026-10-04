@@ -141,7 +141,7 @@ The build validates the project layout and packaged config, imports the actual E
 The [Build workflow](.github/workflows/build.yml) validates every push and pull request on Python 3.10–3.14, packages the wheel once, and publishes it in two downloadable forms:
 
 - **Workflow artifact** — every successful run (including pull requests) attaches the `.whl` as the `endstone-cps-detector-wheel` artifact, available from the run's summary page.
-- **Continuous release** — every push to `main` (i.e., every merge) attaches the freshly built `.whl` to the rolling [`continuous` pre-release](https://github.com/STUP1DLADKAA/python-example-plugin/releases/tag/continuous). The previous asset is replaced, so the release always contains exactly one wheel: the latest merged code. The direct-download link has the form:
+- **Continuous release** — every push to `main` (i.e., every merge) attaches the freshly built `.whl` to the rolling [`continuous` pre-release](https://github.com/STUP1DLADKAA/python-example-plugin/releases/tag/continuous). The previous asset is replaced, so the release always contains exactly one wheel: the latest merged code. The publish job can also be triggered manually (Run workflow) to rebuild and replace the wheel on demand. The direct-download link has the form:
 
   ```text
   https://github.com/STUP1DLADKAA/python-example-plugin/releases/download/continuous/endstone_cps_detector-<version>-py3-none-any.whl
