@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added attack normalization from explicit `LEFT_CLICK_AIR` and direct player melee `ActorDamageEvent` sources.
 - Added bounded timestamp-based CPS measurement, continuous violation timing, lag recovery, staff warnings, kick-only enforcement, and safe name-tag suffix handling.
 - Added validated TOML configuration, administrative commands/permissions, unit tests, and a VS Code task-driven build/export workflow.
+- Added continuous wheel delivery: CI now uploads the built `.whl` as a workflow artifact on every run and publishes it to the rolling `continuous` GitHub pre-release on every merge into `main`, providing a direct download link without a manual release.
+
+### Fixed
+- CI previously built the wheel but discarded it when the job ended; merges into `main` now always leave a directly downloadable `.whl` (release asset and workflow artifact).
 
 ### Changed
 - Targeted Endstone API 0.11.9+ to use the explicit Bedrock left-click-air event; current development dependency resolves the latest compatible 0.11.x API.

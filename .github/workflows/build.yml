@@ -5,9 +5,14 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Validate (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -31,5 +36,87 @@ jobs:
       - name: Validate API, syntax, lint, and tests
         run: uv run python tools/build.py validate
 
+  package:
+    name: Build wheel
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install development dependencies
+        run: uv sync --extra dev --locked
+
       - name: Build and inspect Endstone wheel
         run: uv run python tools/build.py package
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: endstone-cps-detector-wheel
+          path: dist/*.whl
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Publish downloadable wheel
+    runs-on: ubuntu-latest
+    needs: package
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    concurrency:
+      group: continuous-release
+      cancel-in-progress: false
+
+    steps:
+      - name: Download built wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: endstone-cps-detector-wheel
+          path: dist
+
+      - name: Attach wheel to the continuous release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          wheel="$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+          if [ -z "$wheel" ]; then
+            echo "::error::No wheel was produced by the package job."
+            exit 1
+          fi
+          wheel_name="$(basename "$wheel")"
+
+          # Recreate the rolling pre-release so its tag and asset always point at the newest main commit.
+          if gh release view continuous --repo "$REPO" >/dev/null 2>&1; then
+            gh release delete continuous --repo "$REPO" --yes --cleanup-tag
+          fi
+
+          gh release create continuous "$wheel" \
+            --repo "$REPO" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Continuous build" \
+            --notes "Automated wheel build from the latest commit on main. This asset is replaced automatically on every merge. To install, copy the .whl file into the Endstone server's plugins directory and restart the server."
+
+          url="https://github.com/$REPO/releases/download/continuous/$wheel_name"
+          {
+            echo "## Endstone plugin wheel"
+            echo ""
+            echo "- Direct download: $wheel_name"
+            echo "  $url"
+            echo "- Release page: https://github.com/$REPO/releases/tag/continuous"
+            echo ""
+            echo "Built from commit $GITHUB_SHA. The asset is replaced automatically whenever a pull request is merged into main."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Direct download: $url"
