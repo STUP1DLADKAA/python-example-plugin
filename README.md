@@ -48,8 +48,8 @@ The plugin stores the original/base tag and appends only its own suffix. If anot
 ## Installation
 
 1. Install an Endstone build using API `0.11.9+` on the server.
-2. Build the wheel using the workflow below.
-3. Copy `dist/endstone_cps_detector-*.whl` into the server's `plugins/` directory (or use **INSTALL/EXPORT** and select that directory).
+2. Get the wheel — either download the latest `endstone_cps_detector-*.whl` directly from the [continuous build release](https://github.com/STUP1DLADKAA/python-example-plugin/releases/tag/continuous) (rebuilt automatically on every merge into `main`, no login required), or build it locally as described under [Development, validation, and packaging](#development-validation-and-packaging).
+3. Copy the `.whl` into the server's `plugins/` directory (or use **INSTALL/EXPORT** and select that directory).
 4. Restart the server. Endstone loads Python plugins from wheel files in `plugins/`.
 5. Edit the generated `plugins/CPS/config.toml` (the exact data-folder name is determined by Endstone) and restart or run `/cps reload`.
 
@@ -135,6 +135,19 @@ uv run python tools/build.py build
 ```
 
 The build validates the project layout and packaged config, imports the actual Endstone API (including `PlayerInteractEvent.Action.LEFT_CLICK_AIR`), checks the plugin entry point, compiles Python sources, runs Ruff and the tests, then builds and inspects the wheel. Endstone expects a wheel (`.whl`) in its `plugins/` directory; the artifact is written to `dist/`.
+
+### Continuous builds (CI wheel downloads)
+
+The [Build workflow](.github/workflows/build.yml) validates every push and pull request on Python 3.10–3.14, packages the wheel once, and publishes it in two downloadable forms:
+
+- **Workflow artifact** — every successful run (including pull requests) attaches the `.whl` as the `endstone-cps-detector-wheel` artifact, available from the run's summary page.
+- **Continuous release** — every push to `main` (i.e., every merge) attaches the freshly built `.whl` to the rolling [`continuous` pre-release](https://github.com/STUP1DLADKAA/python-example-plugin/releases/tag/continuous). The previous asset is replaced, so the release always contains exactly one wheel: the latest merged code. The publish job can also be triggered manually (Run workflow) to rebuild and replace the wheel on demand. The direct-download link has the form:
+
+  ```text
+  https://github.com/STUP1DLADKAA/python-example-plugin/releases/download/continuous/endstone_cps_detector-<version>-py3-none-any.whl
+  ```
+
+  The exact filename (it embeds the version) is printed in the workflow run summary and shown on the release page. Versioned, permanent releases are still created manually with the Release workflow.
 
 ### Action Wheel / VS Code Tasks
 
